@@ -2,6 +2,11 @@
 #include <string.h>
 #include <errno.h>
 #include <stdio.h>
+
+//these function are private
+void d_str_extend(d_string *);
+char *d_str_to_string_private(d_string*);
+
 d_string *create_dstring(const char *str){
     d_string *res = (d_string*)malloc(sizeof(d_string));
     if(str == NULL){
@@ -9,6 +14,7 @@ d_string *create_dstring(const char *str){
       res->cap = 16;
       res->is_short = true;
       res->buffer[0] = '\0';
+      res->data = NULL;
       return res;
     }
     res->length = strlen(str);
@@ -28,6 +34,22 @@ d_string *create_dstring(const char *str){
 
     return res;
 }
+void d_str_extend(d_string *dstr){
+      if(dstr == NULL) return;
+      dstr->cap *= 2;
+      char *newBlock = (char*)malloc(dstr->cap);
+      if(dstr->is_short){
+          memcpy(newBlock,dstr->buffer,dstr->length+1);
+          dstr->is_short = false;
+          dstr->data = newBlock;
+      }
+      else{
+         memcpy(newBlock,dstr->data,dstr->length+1);
+         free(dstr->data);
+         dstr->data = newBlock;
+      }
+}
+//this function returens a clone of dstr
 d_string *d_str_clone(d_string * dstr){
       if(dstr == NULL) return NULL;
     d_string *clone = create_dstring(d_str_to_string(dstr));
@@ -36,10 +58,7 @@ d_string *d_str_clone(d_string * dstr){
 }
 //it destroys the dstring
 void destroy_dstring(d_string *dstr){
-    if(dstr == NULL){
-        perror("string is not allocated\nso cannot destroy string");
-        return;
-    }
+    if(dstr == NULL) return;
     //if the dstring is not short then deallocate the data string
     if(!dstr->is_short){
         free(dstr->data);
@@ -57,104 +76,83 @@ size_t capacity(d_string *dstr){
     return dstr->cap;
 }
 //it converts dstring to simple string
-char *d_str_to_string(d_string*dstr){
-    if(dstr == NULL){
-        perror("string is not allocated");
-        return NULL;
-    }
+const char *d_str_to_string(d_string*dstr){
+    if(dstr == NULL) return NULL;
+    //check if the string is short then return buffer
+    if(dstr->is_short)
+       return (const char*)dstr->buffer;
+    
+    return (const char *)dstr->data;
+}
+char *d_str_to_string_private(d_string*dstr){
+    if(dstr == NULL) return NULL;
     //check if the string is short then return buffer
     if(dstr->is_short)
        return dstr->buffer;
     
     return dstr->data;
 }
-//it appends a single charecter 
-void add_char(d_string *dstr, const char c){
-       
-    if(dstr == NULL){
-        perror("string is not allocated");
-        return;
-    }
+d_string *d_str_sub_str(d_string *dstr , int s , int e){
+    if(dstr == NULL) return NULL;
+    if(s < 0 || s > e) return NULL;
 
-    if(dstr->is_short && dstr->length < 15){
-           dstr->buffer[dstr->length] = c;
-           dstr->length++;
-           dstr->buffer[dstr->length] = '\0';
-           
-    }
-    // check if it exceeds the capacity then extend it.
-    else if(dstr->length >= dstr->cap-1){
-        dstr->cap += 16;
-        char *newStr = (char*)malloc(dstr->cap);
-        if(dstr->is_short){
-            dstr->is_short = false;
-            strcpy(newStr,dstr->buffer);
-            dstr->data = newStr;
-            dstr->data[dstr->length] = c;
-            dstr->length++;
-            dstr->data[dstr->length] = '\0';
-        }
-        else{
-          strcpy(newStr,dstr->data);
-          free(dstr->data);
-          dstr->data = newStr;
-        
-          dstr->data[dstr->length] = c;
-          dstr->length++;
-          dstr->data[dstr->length] = '\0';
-        }
-        
+    if(s >= 0 && e <= dstr->length-1){
+          char *actual_str = d_str_to_string_private(dstr);
+          d_string *res = create_dstring(NULL); // empty d_string
+          for(int i = s; i <= e; ++i)
+             d_str_add_char(res,actual_str[i]);
+         return res;
     }
     
-    else{
-        dstr->data[dstr->length] = c;
-        dstr->length++;
-        dstr->data[dstr->length] = '\0';
-    }
+    return NULL;
+}
+//it appends a single charecter 
+void d_str_add_char(d_string *dstr, const char c){
+       
+    if(dstr == NULL) return;
+     
+    char *actual_str = NULL;
+    if(dstr->length >= dstr->cap-1)
+        d_str_extend(dstr);
+
+    // Get the actual string buffer
+    // This is safe now because we ensured enough capacity 
+    // 
+    actual_str = d_str_to_string_private(dstr);
+    actual_str[dstr->length] = c;
+    dstr->length++;
+    actual_str[dstr->length] = '\0';
 
 }
 // it concatenate dstring with simple string
-void add_str(d_string *dstr , const char * str){
-    if(dstr == NULL){
-        perror("string is not allocated");
-        return;
-    }
+void d_str_add_str(d_string *dstr , const char * str){
+    if(dstr == NULL)return;
     if(str == NULL) return;
     int n = strlen(str);
 
     for(int i = 0; i < n; ++i){
-        add_char(dstr, str[i]);
+        d_str_add_char(dstr, str[i]);
     }
 }
 //this function converts upper case to lower case letters
-void to_lower(d_string *dstr){
-    if(dstr == NULL){
-        perror("string is not allocated");
-        return;
-    }
+void d_str_to_lower(d_string *dstr){
+    if(dstr == NULL) return;
       
-    char *s = d_str_to_string(dstr); 
+    char *s = d_str_to_string_private(dstr); 
     for (size_t i = 0; i < dstr->length; i++)
     {
-        //check for if the element is an alphabet and also not lowercase
-        if(isalpha(s[i]) && !islower(s[i]))
-           s[i] += 32;
+        s[i] = (unsigned char)tolower(s[i]);
     }
     
 }
 //this function converts lower case to upper case
-void to_upper(d_string *dstr){
-     if(dstr == NULL){
-        perror("string is not allocated");
-        return;
-    }
+void d_str_to_upper(d_string *dstr){
+     if(dstr == NULL) return;
       
-    char *s = d_str_to_string(dstr); 
+    char *s = d_str_to_string_private(dstr); 
     for (size_t i = 0; i < dstr->length; i++)
     {
-        //check for if the element is an alphabet and also not uppercase
-        if(isalpha(s[i]) && !isupper(s[i]))
-           s[i] -= 32;
+           s[i] = (unsigned char)toupper(s[i]);
     }
 }
 

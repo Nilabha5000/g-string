@@ -3,13 +3,24 @@
 #include <errno.h>
 #include <stdio.h>
 
+#define EXTEND_EXPONENTIAL 1
+#define EXTEND_BY_SIZE 2
 //these function are private
-void d_str_extend(d_string *);
+bool d_str_extend(d_string *,int , int);
 char *d_str_to_string_private(d_string*);
-
+int *compute_LPS(const char *);
+//it creates a dstring from simple string
+//if the input string is NULL then it creates an empty dstring
+//it returns the pointer to the created dstring
+//it is the responsibility of the user to free the allocated memory
+//using destroy_dstring function    
 d_string *create_dstring(const char *str){
     d_string *res = (d_string*)malloc(sizeof(d_string));
-    if(str == NULL){
+    if(res == NULL){
+         perror("failed to create dstring");
+         return NULL;
+    }
+    if(str == NULL || strcmp(str,"") == 0){
       res->length = 0;
       res->cap = 16;
       res->is_short = true;
@@ -28,16 +39,30 @@ d_string *create_dstring(const char *str){
     else{
         res->cap = res->length+16;
        res->data = (char*)malloc(res->cap);
+       if(res->data == NULL){
+           perror("failed to create dstring");
+           free(res);
+           return NULL;
+       }
        strcpy(res->data , str);
        res->is_short = false;
     }
 
     return res;
 }
-void d_str_extend(d_string *dstr){
-      if(dstr == NULL) return;
-      dstr->cap *= 2;
-      char *newBlock = (char*)malloc(dstr->cap);
+bool d_str_extend(d_string *dstr, int extend_type, int n){
+      if(dstr == NULL) return false;
+
+      size_t size;
+      if(extend_type == EXTEND_EXPONENTIAL)
+           size = dstr->cap*2;
+      else if(extend_type == EXTEND_BY_SIZE)
+           size = dstr->cap+n+1;
+
+      char *newBlock = (char*)malloc(size);
+
+      if(newBlock == NULL)
+           return false;
       if(dstr->is_short){
           memcpy(newBlock,dstr->buffer,dstr->length+1);
           dstr->is_short = false;
@@ -48,6 +73,29 @@ void d_str_extend(d_string *dstr){
          free(dstr->data);
          dstr->data = newBlock;
       }
+      newBlock[dstr->length] = '\0';
+      dstr->cap = size;
+    return true;
+}
+//it returns the charecter at index
+//if index is out of range it returns '\0'
+//if dstr is NULL it returns '\0'   
+char d_str_at(d_string *dstr , int index){
+    if(dstr == NULL) return '\0';
+    //check for index range
+    if( index < 0 || index >= length(dstr)) return '\0';
+    //get the actual string
+    char *actual_str = d_str_to_string_private(dstr);
+    //return the charecter at index
+    return actual_str[index];
+}
+
+void d_str_set(d_string *dstr , int index , char c){
+    if(dstr == NULL) return;
+    if( index < 0 || index >= length(dstr)) return;
+
+    char *actual_str = d_str_to_string_private(dstr);
+    actual_str[index] = c;
 }
 //this function returens a clone of dstr
 d_string *d_str_clone(d_string * dstr){
@@ -76,6 +124,8 @@ size_t capacity(d_string *dstr){
     return dstr->cap;
 }
 //it converts dstring to simple string
+//this function is safe to use
+//only for read purpose
 const char *d_str_to_string(d_string*dstr){
     if(dstr == NULL) return NULL;
     //check if the string is short then return buffer
@@ -84,6 +134,9 @@ const char *d_str_to_string(d_string*dstr){
     
     return (const char *)dstr->data;
 }
+//this function is private and unsafe to use
+//it returns the actual string buffer
+//it can be used to modify the string
 char *d_str_to_string_private(d_string*dstr){
     if(dstr == NULL) return NULL;
     //check if the string is short then return buffer
@@ -112,12 +165,16 @@ void d_str_add_char(d_string *dstr, const char c){
     if(dstr == NULL) return;
      
     char *actual_str = NULL;
-    if(dstr->length >= dstr->cap-1)
-        d_str_extend(dstr);
+    if(dstr->length >= dstr->cap-1){
+        if(!d_str_extend(dstr,EXTEND_EXPONENTIAL,0))
+        {
+            perror("failed to extend memory !");
+            return;
+        }
+    }
 
     // Get the actual string buffer
-    // This is safe now because we ensured enough capacity 
-    // 
+    // This is safe now because we ensured enough capacity above
     actual_str = d_str_to_string_private(dstr);
     actual_str[dstr->length] = c;
     dstr->length++;
@@ -130,18 +187,40 @@ void d_str_add_str(d_string *dstr , const char * str){
     if(str == NULL) return;
     int n = strlen(str);
 
-    for(int i = 0; i < n; ++i){
-        d_str_add_char(dstr, str[i]);
+    if(length(dstr)+n >= capacity(dstr)-1){
+        if(!d_str_extend(dstr,EXTEND_BY_SIZE,n)){
+            perror("failed to extend memory !");
+            return;
+        }
     }
+    char *actual_str = d_str_to_string_private(dstr);
+    memmove(actual_str+dstr->length , str , n);
+    dstr->length += n;
+    actual_str[dstr->length] = '\0';
+}
+void d_str_add_d_str(d_string *dstr1 , d_string *dstr2){
+    if(dstr1 == NULL) return;
+    if(dstr2 == NULL) return;
+    if(length(dstr1)+length(dstr2) >= capacity(dstr1)-1){
+        if(!d_str_extend(dstr1,EXTEND_BY_SIZE,length(dstr2))){
+            perror("failed to extend memory !");
+            return;
+        }
+    }
+    char *str = d_str_to_string_private(dstr2);
+    char *actual_str = d_str_to_string_private(dstr1);
+    memmove(actual_str+dstr1->length,str,dstr2->length);
+    dstr1->length += dstr2->length;
+    actual_str[dstr1->length] = '\0';
 }
 //this function converts upper case to lower case letters
 void d_str_to_lower(d_string *dstr){
     if(dstr == NULL) return;
-      
+    
     char *s = d_str_to_string_private(dstr); 
     for (size_t i = 0; i < dstr->length; i++)
     {
-        s[i] = (unsigned char)tolower(s[i]);
+        s[i] = tolower((unsigned char)s[i]);
     }
     
 }
@@ -152,7 +231,7 @@ void d_str_to_upper(d_string *dstr){
     char *s = d_str_to_string_private(dstr); 
     for (size_t i = 0; i < dstr->length; i++)
     {
-           s[i] = (unsigned char)toupper(s[i]);
+           s[i] = toupper((unsigned char)s[i]);
     }
 }
 
@@ -176,4 +255,58 @@ bool d_str_compare_d_str(d_string *dstr1 , d_string *dstr2){
     if(length(dstr1) != length(dstr2)) return false;
 
     return strcmp(d_str_to_string(dstr1),d_str_to_string(dstr2)) == 0;
+}
+
+int *compute_LPS(const char *pattern){
+    size_t n = strlen(pattern);
+    int *lps = (int*)malloc(sizeof(int)*n);
+    memset(lps,0,n);
+    
+    int len = 0;
+
+    int i = 1;
+
+    while(i < n){
+        if(pattern[i] == pattern[len]){
+            len++;
+            lps[i] = len;
+            i++;
+        }
+        else{
+            if(len != 0){
+                len = lps[len-1];
+            }
+            else{
+                lps[i] = 0;
+                i++;
+            }
+        }
+    }
+    return lps;
+}
+
+int d_str_find(d_string *dstr , const char *pattern){
+
+    int i = 0;
+    int j = 0;
+    int *lps = compute_LPS(pattern);
+    int pat_size = strlen(pattern);
+    while(i < length(dstr)){
+        if(d_str_at(dstr,i) == pattern[j]){
+               i++;
+               j++;
+               if(j == pat_size){
+                     free(lps);
+                     return i-j;
+               }
+        }
+        else{
+            if(j != 0)
+                j = lps[j-1];
+            else
+              i++;
+        }
+    }
+    free(lps);
+    return -1;
 }

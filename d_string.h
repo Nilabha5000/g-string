@@ -35,5 +35,6 @@ int d_str_find(d_string *, const char *);
 void d_str_insert(d_string * , const char * , int);
 void d_str_add_str(d_string * , const char *);
 void d_str_add_d_str(d_string * , d_string *);
+void d_str_rev(d_string *);
 const char *d_str_to_string(d_string*);
 #endif

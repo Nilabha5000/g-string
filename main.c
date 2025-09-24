@@ -35,7 +35,8 @@ int main() {
     printf("final ds capacity = %zu\n", capacity(ds));
     printf("final ds1 length = %zu\n", length(ds1));
     printf("final ds1 capacity = %zu\n", capacity(ds1));
-
+    d_str_rev(ds);
+    printf("%s\n",d_str_to_string(ds));
     // cleanup
     destroy_dstring(substr);
     destroy_dstring(ds);

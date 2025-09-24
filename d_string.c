@@ -262,6 +262,18 @@ bool d_str_compare_d_str(d_string *dstr1 , d_string *dstr2){
     return strcmp(d_str_to_string(dstr1),d_str_to_string(dstr2)) == 0;
 }
 
+void d_str_rev(d_string *dstr){
+
+    char temp = '\0';
+    int i = 0 , j = length(dstr)-1;
+    while(i < j){
+        temp = d_str_at(dstr,i);
+        d_str_set(dstr,i,d_str_at(dstr,j));
+        d_str_set(dstr,j,temp);
+        i++;
+        j--;
+    }
+}
 int *compute_LPS(const char *pattern){
     size_t n = strlen(pattern);
     int *lps = (int*)malloc(sizeof(int)*n);

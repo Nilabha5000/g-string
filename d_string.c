@@ -50,6 +50,10 @@ d_string *create_dstring(const char *str){
 
     return res;
 }
+//this function extends the dstring
+//it returns true if the extension is successful otherwise false
+//extend_type = EXTEND_EXPONENTIAL : it doubles the capacity
+//extend_type = EXTEND_BY_SIZE : it extends the capacity by n
 bool d_str_extend(d_string *dstr, int extend_type, int n){
       if(dstr == NULL) return false;
 
@@ -147,17 +151,18 @@ char *d_str_to_string_private(d_string*dstr){
 }
 d_string *d_str_sub_str(d_string *dstr , int s , int e){
     if(dstr == NULL) return NULL;
-    if(s < 0 || s > e) return NULL;
-
-    if(s >= 0 && e <= dstr->length-1){
-          char *actual_str = d_str_to_string_private(dstr);
-          d_string *res = create_dstring(NULL); // empty d_string
-          for(int i = s; i <= e; ++i)
-             d_str_add_char(res,actual_str[i]);
-         return res;
-    }
-    
-    return NULL;
+    if(s < 0 || s > e || e >= length(dstr)) return NULL;
+     
+    size_t len = e-s+1;
+    char *actual_str = d_str_to_string_private(dstr);
+    char *temp = (char*)malloc(len+1);
+    if(temp == NULL)
+        return NULL;
+    memmove(temp, actual_str+s, len);
+    temp[len] = '\0';
+    d_string *res = create_dstring(temp);
+    free(temp);
+    return res;
 }
 //it appends a single charecter 
 void d_str_add_char(d_string *dstr, const char c){
@@ -309,4 +314,29 @@ int d_str_find(d_string *dstr , const char *pattern){
     }
     free(lps);
     return -1;
+}
+
+void d_str_insert(d_string *dstr , const char *str , int index){
+    if(dstr == NULL) return;
+    size_t n = strlen(str);
+    //check for index range
+    if(index < 0 || index > length(dstr)) return;
+    //extend the dstring if required
+    if(length(dstr) + n >= capacity(dstr))
+        if(!d_str_extend(dstr ,EXTEND_BY_SIZE,n)) return;
+    //get the actual string
+    char *actual_str = d_str_to_string_private(dstr);
+    // shifting the string to right
+    int i = length(dstr)-1;
+    // making space for inserting a string
+    while(i >= index){
+        actual_str[i+n] = actual_str[i];
+        i--;
+    }
+    // inserting the string
+    memmove(actual_str+index, str,n);
+    //updating the length of dstring
+    dstr->length += n;
+    //null terminating the string
+    actual_str[dstr->length] = '\0';
 }

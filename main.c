@@ -8,15 +8,18 @@ int main() {
     printf("ds string : \"%s\"\n", d_str_to_string(ds));
     printf("ds1 string: \"%s\"\n", d_str_to_string(ds1));
 
-    d_str_add_str(ds, "Hello, world this is a great day!");
+    d_str_add_str(ds, "Hello,world this is a great day!");
     d_str_to_upper(ds);
-    if (d_str_compare_str(ds, "HELLO, WORLD THIS IS A GREAT DAY!"))
+    if (d_str_compare_str(ds, "HELLO,WORLD THIS IS A GREAT DAY!"))
         printf("strings matched!\n");
     else
         printf("strings not matched.\n");
     
     int x = d_str_find(ds,"GREAT");
     (x != -1) ?  printf("GREAT is found in ds string at pos %d\n",x) : printf("GREAT is not found in ds \n");
+    
+    d_str_insert(ds,"THIS IS A GREAT WORLD ",6);
+    printf("\n");
     d_str_add_str(ds, " Let's append more text.");
     d_str_add_str(ds, "Another string here."); 
     d_str_to_upper(ds);

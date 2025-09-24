@@ -32,6 +32,7 @@ void d_str_to_lower(d_string *);
 bool d_str_compare_str(d_string *, const char *);
 bool d_str_compare_d_str(d_string * , d_string*);
 int d_str_find(d_string *, const char *);
+void d_str_insert(d_string * , const char * , int);
 void d_str_add_str(d_string * , const char *);
 void d_str_add_d_str(d_string * , d_string *);
 const char *d_str_to_string(d_string*);

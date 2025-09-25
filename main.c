@@ -8,7 +8,8 @@ int main() {
     printf("ds string : \"%s\"\n", d_str_to_string(ds));
     printf("ds1 string: \"%s\"\n", d_str_to_string(ds1));
 
-    d_str_add_str(ds, "Hello,world this is a great day!");
+    d_str_add_str(ds, "      Hello,world this is a great day!        ");
+    d_str_trim(ds, "b");
     d_str_to_upper(ds);
     if (d_str_compare_str(ds, "HELLO,WORLD THIS IS A GREAT DAY!"))
         printf("strings matched!\n");
@@ -32,8 +33,6 @@ int main() {
         printf("substr : NULL (out of range)\n");
     printf("ds at 7 = %c\n", d_str_at(ds, 7));
     printf("\nfinal ds length = %zu\n", length(ds));
-    printf("final ds capacity = %zu\n", capacity(ds));
-    printf("final ds1 length = %zu\n", length(ds1));
     printf("final ds1 capacity = %zu\n", capacity(ds1));
     d_str_rev(ds);
     printf("%s\n",d_str_to_string(ds));

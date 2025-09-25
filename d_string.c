@@ -263,21 +263,79 @@ bool d_str_compare_d_str(d_string *dstr1 , d_string *dstr2){
 }
 
 void d_str_rev(d_string *dstr){
-
+    if(dstr == NULL) return;
     char temp = '\0';
     int i = 0 , j = length(dstr)-1;
+    char *actual_str = d_str_to_string_private(dstr);
     while(i < j){
-        temp = d_str_at(dstr,i);
-        d_str_set(dstr,i,d_str_at(dstr,j));
-        d_str_set(dstr,j,temp);
+        temp = actual_str[i];
+        actual_str[i] = actual_str[j];
+        actual_str[j] = temp;
         i++;
         j--;
+    }
+}
+void d_str_trim(d_string *dstr , const char* type){
+    if (dstr == NULL) return;
+
+    int l_trim_chars = 0;
+    int r_trim_chars = 0;
+    char *actual_str = d_str_to_string_private(dstr);
+   //trimming the left side
+    if (strcmp(type,"l") == 0 || strcmp(type,"b") == 0) {
+        while (actual_str[l_trim_chars] == ' ')
+            l_trim_chars++;
+    }
+    //trimming the right side
+    if (strcmp(type,"r") == 0 || strcmp(type,"b") == 0) {
+        while (dstr->length - r_trim_chars - 1 >= 0 &&
+               actual_str[dstr->length - r_trim_chars - 1] == ' ')
+            r_trim_chars++;
+    }
+
+    size_t new_size = dstr->length - (l_trim_chars + r_trim_chars);
+    if (new_size < 0) new_size = 0;
+    // allocating new string
+    char *newstr = (char*)malloc(new_size + 1);
+    if (!newstr) return;
+    // copying the trimmed string
+    memcpy(newstr, actual_str + l_trim_chars, new_size);
+    newstr[new_size] = '\0';
+
+    // free old + handle SSO
+    if (dstr->is_short) {
+        //clearing the buffer
+        memset(dstr->buffer, 0, 16);
+        //copying the new string to buffer
+        memcpy(dstr->buffer, newstr, new_size);
+        dstr->buffer[new_size] = '\0';
+        //updating the length
+        dstr->length = new_size;
+        free(newstr);
+    }
+    //check if new size is less than 16
+    //then make is_short true and copy to buffer 
+    else if (new_size < 16) {
+        free(dstr->data);
+        memset(dstr->buffer, 0, 16);
+        memcpy(dstr->buffer, newstr, new_size);
+        dstr->buffer[new_size] = '\0';
+        dstr->length = new_size;
+        dstr->cap = 16;
+        dstr->is_short = true;
+        dstr->data = NULL;
+        free(newstr);
+    } else {
+        free(dstr->data);
+        dstr->data = newstr;
+        dstr->length = new_size;
+        dstr->cap = new_size + 1;
     }
 }
 int *compute_LPS(const char *pattern){
     size_t n = strlen(pattern);
     int *lps = (int*)malloc(sizeof(int)*n);
-    memset(lps,0,n);
+    memset(lps,0,n*sizeof(int));
     
     int len = 0;
 

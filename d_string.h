@@ -29,6 +29,7 @@ size_t capacity(d_string *);
 void d_str_add_char(d_string *, const char);
 void d_str_to_upper(d_string *);
 void d_str_to_lower(d_string *);
+void d_str_trim(d_string * , const char *);
 bool d_str_compare_str(d_string *, const char *);
 bool d_str_compare_d_str(d_string * , d_string*);
 int d_str_find(d_string *, const char *);
